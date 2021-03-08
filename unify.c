@@ -53,6 +53,7 @@ int use_equals = 0;
 int state = FIND_NEXT;
 int found_index = 0;
 char name[256] = { '\0' };
+char pstuff[255];
 
 void ensure_name(), add_line(), generate_output();
 
@@ -131,6 +132,7 @@ char *argv[];
 		if (!output_type) {
 		    output_type = 1;
 		}
+	    	snprintf(pstuff, sizeof(pstuff), "%s", buf + 16);
 		ensure_name();
 		state = PARSE_OLD;
 		break;
@@ -190,6 +192,7 @@ char *argv[];
 	    char *cp;
 
 	    if (strnNE(buf, "@@ -", 4)) {
+		generate_output();
 		found_index = 0;
 		*name = '\0';
 		state = FIND_NEXT;
@@ -219,6 +222,7 @@ char *argv[];
 			line_num);
 		exit(1);
 	    }
+	    snprintf(pstuff, sizeof(pstuff), "%s", cp + 2);
 	    o_end = (o_start ? o_start + o_end - 1 : 0);
 	    n_end = (n_start ? n_start + n_end - 1 : 0);
 	    o_first = o_start;
@@ -262,13 +266,14 @@ char *argv[];
 	    }
 	    break;
 	case PARSE_CDIFF:
+	    generate_output();
 	    if (strnNE(buf, "********", 8)) {
-		generate_output();
 		found_index = 0;
 		*name = '\0';
 		state = FIND_NEXT;
 		goto reprocess;
 	    }
+	    snprintf(pstuff, sizeof(pstuff), "%s", buf + 16);
 	    state = PARSE_OLD;
 	    break;
 	case PARSE_OLD:
@@ -498,7 +503,7 @@ generate_output()
 
 	i = o_first ? o_last - o_first + 1 : 0;
 	j = n_first ? n_last - n_first + 1 : 0;
-	printf("@@ -%ld,%ld +%ld,%ld @@\n", o_first, i, n_first, j);
+	printf("@@ -%ld,%ld +%ld,%ld @@ %s\n", o_first, i, n_first, j,pstuff);
 	for (line = root.link; line; line = hold) {
 	    printf("%c%s", use_equals && line->type == ' '? '=' : line->type,
 		line->str);
@@ -510,7 +515,7 @@ generate_output()
 	int found_plus = 1;
 	char ch;
 
-	printf("***************\n*** %ld", o_first);
+	printf("***************%s*** %ld", pstuff, o_first);
 	if (o_first == o_last) {
 	    printf(" ****\n");
 	} else {
