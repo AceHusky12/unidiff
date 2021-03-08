@@ -1,0 +1,112 @@
+.\"
+.\" unify.1
+.\"
+.de Sp
+.if t .sp .5v
+.if n .sp
+..
+.\"
+.\"     Set up \*(-- to give an unbreakable dash;
+.\"     string Tr holds user defined translation string.
+.\"     Bell System Logo is used as a dummy character.
+.\"
+.tr \(bs-|\(bv\*(Tr
+.ie n \{\
+.ds -- \(bs-
+.if (\n(.H=4u)&(1m=24u) .ds -- \(bs\h'-12u'\(bs\h'-12u'-\" diablo 10 pitch
+.if (\n(.H=4u)&(1m=20u) .ds -- \(bs\h'-12u'\(bs\h'-8u'-\" diablo 12 pitch
+.ds L" ""
+.ds R" ""
+.ds L' '
+.ds R' '
+'br\}
+.el\{\
+.ds -- \(em\|
+.tr \*(Tr
+.ds L" ``
+.ds R" ''
+.ds L' `
+.ds R' '
+'br\}
+.TH UNIFY 1 LOCAL
+.SH NAME
+unify - manipulate context diffs and unified context diffs
+.SH SYNOPSIS
+.B unify
+[-=ceopsuU] [filename]
+.SH DESCRIPTION
+.I Unify
+will accept either a regular context diff (old- or new-style) or a unified
+context diff as input, and generate either a unified diff or a
+new-style context diff as output.
+The default is to output the opposite style of whatever was input, but this
+can be overridden by the
+.B \-c
+or
+.B \-u
+options.
+If the source file is not mentioned, it will be read from the standard input.
+.Sp
+Various other options allow you to echo the non-diff (comment) lines to
+stderr, modify
+the diff by removing the comment lines, and/or tweak the diff into a format
+that is good for releasing patches.
+.SH OPTIONS
+.TP 5
+.B \-c
+forces context diff output.
+.TP 5
+.B \-e
+echoes non-diff (comment) lines to stderr.
+If a comment line is being stripped via the
+.B \-p
+option, it is echoed with a preceding \*(L"!!! \*(R".
+If all comments are being stripped (via the
+.B \-s
+option), no special designation is given.
+.TP 5
+.B \-o
+is used to force a context diff to be interpreted as being of the old-style
+even if it has the extra trailing asterisks that normally mark the new-style.
+This is only needed if unify fails to work with your version of diff.
+.TP 5
+.B \-p
+turns on patch-output mode.  This will do two things:
+.Sp
+a) transform a header like:
+.Sp
+	*** orig/file	Sat May  5 02:59:37 1990
+.br
+	--- ./file	Sat May  5 03:00:08 1990
+.Sp
+into a line of \*(L"Index: file\*(R" -- we choose the shorter name and strip
+a leading \*(L"./\*(R" sequence if present.
+.Sp
+b) strip lines that begin with:
+.Sp
+	\*(L"Only in \*(R"
+.br
+	\*(L"Common subdir\*(R"
+.br
+	\*(L"Binary files\*(R"
+.br
+	\*(L"diff -\*(R"
+.TP 5
+.B \-s
+strips non-diff lines (comments).
+.TP 5
+.B \-u
+forces unified diff output.
+.TP 5
+.B \-U
+is the same as \-up.
+Why?
+Because.
+.TP 5
+.B \-=
+will use a \*(L'=\*(R' prefix in a unified diff for lines that are common
+to both files instead of using a leading space.
+Though this is harder to read, it is less likely to be mangled by
+trailing-space-stripping sites when posted to usenet.
+.SH AUTHOR
+Wayne Davison <davison@borland.com>

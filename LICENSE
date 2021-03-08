@@ -1,0 +1,10 @@
+Excerpt from unifiy.c
+** unify.c - change a diff to/from a context diff from/to a unified diff.
+**
+** Version 1.1
+**
+** Author:  Wayne Davison <davison@borland.com>
+**
+** Feel free to use this code in any way you desire.
+
+I beleive this signifies that unidiff is in the Public Domain.

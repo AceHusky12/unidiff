@@ -1,0 +1,32 @@
+These utilities are made for manipulating unified context diffs.  The unified
+diff is a fairly recent critter that combines the old and new hunks of a
+context diff into one hunk.  This is smaller than a normal context diff by
+about 20% (I've seen from 12% to 48%, depending on the number of redundant
+context lines that are no longer needed).
+
+Keep in mind that _no_information_is_lost_ by the conversion of a context
+diff into a unified diff.  Only the redundant context lines that present
+the same information twice.
+
+If you're worried that some people will be unable to apply a patch released
+as a unified diff then you could distribute the "unipatch.c" program -- 1.5k
+of C source that converts a unified diff into a context diff that any version
+of patch can understand.
+
+The main utility is in unify.c, which is capable of transforming a context
+diff into a unified diff and back again.  It is also able to do useful
+filtering of the patch as it is converted.  For example, I use unify with
+the -U option to transform raw diff output into a releasable patch.  See
+the man page for details.
+
+If you find that you like unified diffs, you may like to know that gnu diff
+version 1.15 creates them directly with the -u (+unified) option, and patch
+version 12u4 can apply them.  You can grab both of these from any gnu archive
+site.
+
+Version 1.1 of the utilities properly handles the abbreviated header line
+introduced in gnu diff 1.15.  It also adds the -= and -o options to unify.
+
+ \  /| / /|\/ /| /(_)     Wayne Davison
+(_)/ |/ /\|/ / |/  \      davison@borland.com
+   (W   A  Y   N   e)

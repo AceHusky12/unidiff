@@ -1,0 +1,864 @@
+Newsgroups: comp.sources.misc
+From: davison@borland.com (Wayne Davison)
+Subject:  v25i014:  unidiff - Unified diff utilities version 1.1, Part01/01
+Message-ID: <1991Nov5.025306.2828@sparky.imd.sterling.com>
+X-Md4-Signature: 753ccefaa22f69d15d5923f9fa9238fe
+Date: Tue, 5 Nov 1991 02:53:06 GMT
+Approved: kent@sparky.imd.sterling.com
+
+Submitted-by: davison@borland.com (Wayne Davison)
+Posting-number: Volume 25, Issue 14
+Archive-name: unidiff/part01
+Environment: UNIX
+Supersedes: unidiff: Volume 14, Issue 70
+
+Here's version 1.1 of the unified diff utilities first posted in
+August of last year.  This release adds support for the abbreviated
+header introduced in gnu diff 1.15, and adds a couple options to the
+unify utility.  If you already have gnu diff 1.15 and patch 12u4,
+then you probably won't need these.  However, I still use unify as
+a filter for generating patches from raw diff output.
+
+See the README file for an explanation of what a unified diff is.
+-- 
+ \  /| / /|\/ /| /(_)     Wayne Davison
+(_)/ |/ /\|/ / |/  \      davison@borland.com
+   (W   A  Y   N   e)
+
+# This is a shell archive.  Save it in a file, remove anything before
+# this line, and then unpack it by entering "sh file".  Note, it may
+# create directories; files and directories will be owned by you and
+# have default permissions.
+#
+# This archive contains:
+#
+#	README
+#	Makefile
+#	unify.1
+#	unify.c
+#	unipatch.c
+#
+echo x - README
+sed 's/^X//' >README << 'END-of-README'
+XThese utilities are made for manipulating unified context diffs.  The unified
+Xdiff is a fairly recent critter that combines the old and new hunks of a
+Xcontext diff into one hunk.  This is smaller than a normal context diff by
+Xabout 20% (I've seen from 12% to 48%, depending on the number of redundant
+Xcontext lines that are no longer needed).
+X
+XKeep in mind that _no_information_is_lost_ by the conversion of a context
+Xdiff into a unified diff.  Only the redundant context lines that present
+Xthe same information twice.
+X
+XIf you're worried that some people will be unable to apply a patch released
+Xas a unified diff then you could distribute the "unipatch.c" program -- 1.5k
+Xof C source that converts a unified diff into a context diff that any version
+Xof patch can understand.
+X
+XThe main utility is in unify.c, which is capable of transforming a context
+Xdiff into a unified diff and back again.  It is also able to do useful
+Xfiltering of the patch as it is converted.  For example, I use unify with
+Xthe -U option to transform raw diff output into a releasable patch.  See
+Xthe man page for details.
+X
+XIf you find that you like unified diffs, you may like to know that gnu diff
+Xversion 1.15 creates them directly with the -u (+unified) option, and patch
+Xversion 12u4 can apply them.  You can grab both of these from any gnu archive
+Xsite.
+X
+XVersion 1.1 of the utilities properly handles the abbreviated header line
+Xintroduced in gnu diff 1.15.  It also adds the -= and -o options to unify.
+X
+X \  /| / /|\/ /| /(_)     Wayne Davison
+X(_)/ |/ /\|/ / |/  \      davison@borland.com
+X   (W   A  Y   N   e)
+END-of-README
+echo x - Makefile
+sed 's/^X//' >Makefile << 'END-of-Makefile'
+X# A simple makefile for unify and unipatch
+X
+XCC= cc
+XCFLAGS= -O
+X
+Xall: unify unipatch
+X
+Xunify: unify.c
+X	$(CC) $(CFLAGS) -o unify unify.c
+X
+Xunipatch: unipatch.c
+X	$(CC) $(CFLAGS) -o unipatch unipatch.c
+END-of-Makefile
+echo x - unify.1
+sed 's/^X//' >unify.1 << 'END-of-unify.1'
+X.\"
+X.\" unify.1
+X.\"
+X.de Sp
+X.if t .sp .5v
+X.if n .sp
+X..
+X.\"
+X.\"     Set up \*(-- to give an unbreakable dash;
+X.\"     string Tr holds user defined translation string.
+X.\"     Bell System Logo is used as a dummy character.
+X.\"
+X.tr \(bs-|\(bv\*(Tr
+X.ie n \{\
+X.ds -- \(bs-
+X.if (\n(.H=4u)&(1m=24u) .ds -- \(bs\h'-12u'\(bs\h'-12u'-\" diablo 10 pitch
+X.if (\n(.H=4u)&(1m=20u) .ds -- \(bs\h'-12u'\(bs\h'-8u'-\" diablo 12 pitch
+X.ds L" ""
+X.ds R" ""
+X.ds L' '
+X.ds R' '
+X'br\}
+X.el\{\
+X.ds -- \(em\|
+X.tr \*(Tr
+X.ds L" ``
+X.ds R" ''
+X.ds L' `
+X.ds R' '
+X'br\}
+X.TH UNIFY 1 LOCAL
+X.SH NAME
+Xunify - manipulate context diffs and unified context diffs
+X.SH SYNOPSIS
+X.B unify
+X[-=ceopsuU] [filename]
+X.SH DESCRIPTION
+X.I Unify
+Xwill accept either a regular context diff (old- or new-style) or a unified
+Xcontext diff as input, and generate either a unified diff or a
+Xnew-style context diff as output.
+XThe default is to output the opposite style of whatever was input, but this
+Xcan be overridden by the
+X.B \-c
+Xor
+X.B \-u
+Xoptions.
+XIf the source file is not mentioned, it will be read from the standard input.
+X.Sp
+XVarious other options allow you to echo the non-diff (comment) lines to
+Xstderr, modify
+Xthe diff by removing the comment lines, and/or tweak the diff into a format
+Xthat is good for releasing patches.
+X.SH OPTIONS
+X.TP 5
+X.B \-c
+Xforces context diff output.
+X.TP 5
+X.B \-e
+Xechoes non-diff (comment) lines to stderr.
+XIf a comment line is being stripped via the
+X.B \-p
+Xoption, it is echoed with a preceding \*(L"!!! \*(R".
+XIf all comments are being stripped (via the
+X.B \-s
+Xoption), no special designation is given.
+X.TP 5
+X.B \-o
+Xis used to force a context diff to be interpreted as being of the old-style
+Xeven if it has the extra trailing asterisks that normally mark the new-style.
+XThis is only needed if unify fails to work with your version of diff.
+X.TP 5
+X.B \-p
+Xturns on patch-output mode.  This will do two things:
+X.Sp
+Xa) transform a header like:
+X.Sp
+X	*** orig/file	Sat May  5 02:59:37 1990
+X.br
+X	--- ./file	Sat May  5 03:00:08 1990
+X.Sp
+Xinto a line of \*(L"Index: file\*(R" -- we choose the shorter name and strip
+Xa leading \*(L"./\*(R" sequence if present.
+X.Sp
+Xb) strip lines that begin with:
+X.Sp
+X	\*(L"Only in \*(R"
+X.br
+X	\*(L"Common subdir\*(R"
+X.br
+X	\*(L"Binary files\*(R"
+X.br
+X	\*(L"diff -\*(R"
+X.TP 5
+X.B \-s
+Xstrips non-diff lines (comments).
+X.TP 5
+X.B \-u
+Xforces unified diff output.
+X.TP 5
+X.B \-U
+Xis the same as \-up.
+XWhy?
+XBecause.
+X.TP 5
+X.B \-=
+Xwill use a \*(L'=\*(R' prefix in a unified diff for lines that are common
+Xto both files instead of using a leading space.
+XThough this is harder to read, it is less likely to be mangled by
+Xtrailing-space-stripping sites when posted to usenet.
+X.SH AUTHOR
+XWayne Davison <davison@borland.com>
+END-of-unify.1
+echo x - unify.c
+sed 's/^X//' >unify.c << 'END-of-unify.c'
+X/*
+X** unify.c - change a diff to/from a context diff from/to a unified diff.
+X**
+X** Version 1.1
+X**
+X** Author:  Wayne Davison <davison@borland.com>
+X**
+X** Feel free to use this code in any way you desire.
+X*/
+X
+X#include <stdio.h>
+X
+Xextern char *malloc();
+X
+X#define FIND_NEXT	0
+X#define PARSE_UNIDIFF	1
+X#define UNI_LINES	2
+X#define PARSE_CDIFF	3
+X#define PARSE_OLD	4
+X#define CHECK_OLD	5
+X#define OLD_LINES	6
+X#define PARSE_NEW	7
+X#define NEW_LINES	8
+X
+X#define strnEQ(s1,s2,n) (!strncmp(s1,s2,n))
+X#define strnNE(s1,s2,n) strncmp(s1,s2,n)
+X
+X#define AtoL(cp,n) {n = atol(cp); while (*cp <= '9' && *cp >= '0') cp++; }
+X
+Xchar buf[2048];
+X
+Xstruct liner {
+X    struct liner *link;
+X    char type;
+X    int num;
+X    char str[1];
+X} root, *head = &root, *hold = &root, *line;
+X
+Xlong o_first = 0, o_last = -1;
+Xlong n_first = 0, n_last = 0;
+X
+Xlong o_start, o_end, o_line;
+Xlong n_start, n_end, n_line;
+X
+Xlong line_num = 0;
+Xint input_type = 0;
+Xint output_type = 0;
+Xint echo_comments = 0;
+Xint strip_comments = 0;
+Xint patch_format = 0;
+Xint use_equals = 0;
+X
+Xint state = FIND_NEXT;
+Xint found_index = 0;
+Xchar name[256] = { '\0' };
+X
+Xvoid ensure_name(), add_line(), generate_output();
+X
+Xint
+Xmain(argc, argv)
+Xint argc;
+Xchar *argv[];
+X{
+X    char type;
+X    char ndiff;		/* Equals '*' when we have a new-style context diff */
+X    int odiff = 0;
+X    char star_dash_plus = ' ';
+X    FILE *fp_in = stdin;
+X
+X    while (--argc) {
+X	if (**++argv == '-') {
+X	    while (*++*argv) {
+X		switch (**argv) {
+X		case '=':		/* use '=' not ' ' in unified diffs */
+X		    use_equals = 1;
+X		    break;
+X		case 'c':		/* force context diff output */
+X		    output_type = 2;
+X		    break;
+X		case 'e':		/* echo comments to stderr */
+X		    echo_comments = 1;
+X		    break;
+X		case 'o':		/* old-style diff, no matter what */
+X		    odiff = 1;
+X		    break;
+X		case 'p':		/* generate patch format */
+X		case 'P':
+X		    patch_format = 1;
+X		    break;
+X		case 's':		/* strip comment lines */
+X		    strip_comments = 1;
+X		    break;
+X		case 'U':		/* force patch-unified output */
+X		    patch_format = 1;
+X		case 'u':		/* force unified output */
+X		    output_type = 1;
+X		    break;
+X		default:
+X		    fprintf(stderr, "Unknown option: '%c'\n", **argv);
+X		    exit(1);
+X		}
+X	    }
+X	} else {
+X	    if (fp_in != stdin) {
+X		fprintf(stderr, "Only one filename allowed.\n", *argv);
+X		exit(1);
+X	    }
+X	    if ((fp_in = fopen(*argv, "r")) == NULL) {
+X		fprintf(stderr, "Unable to open '%s'.\n", *argv);
+X		exit(1);
+X	    }
+X	}
+X    }
+X
+X    while (fgets(buf, sizeof buf, fp_in)) {
+X	line_num++;
+X      reprocess:
+X	switch (state) {
+X	case FIND_NEXT:
+X	    if (input_type < 2 && strnEQ(buf, "@@ -", 4)) {
+X		input_type = 1;
+X		if (!output_type) {
+X		    output_type = 2;
+X		}
+X		ensure_name();
+X		state = PARSE_UNIDIFF;
+X		goto reprocess;
+X	    }
+X	    if (!(input_type & 1) && strnEQ(buf, "********", 8)) {
+X		input_type = 2;
+X		if (!output_type) {
+X		    output_type = 1;
+X		}
+X		ensure_name();
+X		state = PARSE_OLD;
+X		break;
+X	    }
+X	    if (strnEQ(buf, "Index: ", 7)) {
+X		found_index = 1;
+X		printf("%s", buf);
+X	    } else if (strnEQ(buf, "Prereq: ", 8)) {
+X		printf("%s", buf);
+X	    } else if (strnEQ(buf, "*** ", 4)
+X		    || strnEQ(buf, "--- ", 4)
+X		    || strnEQ(buf, "+++ ", 4)) {
+X		if (!found_index) {
+X		    char *cp;
+X		    int len;
+X
+X		    for (cp=buf+4,len=0; *cp>' ' && len<255; cp++,len++) {
+X			;
+X		    }
+X		    if (!*name || len < strlen(name)) {
+X			strncpy(name, buf+4, len);
+X			name[len] = '\0';
+X		    }
+X		}
+X		if (!patch_format) {
+X		    if (output_type == 1 && (*buf == '+'
+X		      || *buf == '-' && star_dash_plus != '*')
+X		     || output_type == 2 && (*buf == '*'
+X		      || *buf == '-' && star_dash_plus == '*')) {
+X			printf("%s", buf);
+X		    } else if (*buf == '*' || *buf == '+') {
+X			printf("---%s", buf+3);
+X		    } else if (*buf == '-' && star_dash_plus == '*') {
+X			printf("+++%s", buf+3);
+X		    } else {
+X			printf("***%s", buf+3);
+X		    }
+X		    star_dash_plus = *buf;
+X		}
+X	    } else if (patch_format
+X	     && (strnEQ(buf, "Only in ", 8) || strnEQ(buf, "Common subdir", 13)
+X	      || strnEQ(buf, "diff -", 6) || strnEQ(buf, "Binary files", 12))) {
+X		if (echo_comments) {
+X		    fprintf(stderr, "%s%s", strip_comments ? "" : "!!! ", buf);
+X		}
+X	    } else {
+X		if (echo_comments) {
+X		    fprintf(stderr, "%s", buf);
+X		}
+X		if (!strip_comments) {
+X		    printf("%s", buf);
+X		}
+X	    }
+X	    break;
+X	case PARSE_UNIDIFF:
+X	{
+X	    char *cp;
+X
+X	    if (strnNE(buf, "@@ -", 4)) {
+X		found_index = 0;
+X		*name = '\0';
+X		state = FIND_NEXT;
+X		goto reprocess;
+X	    }
+X	    cp = buf+4;
+X	    AtoL(cp, o_start);
+X	    if (*cp++ == ',') {
+X		AtoL(cp, o_end);
+X		cp++;
+X	    } else {
+X		o_end = 1;
+X	    }
+X	    if (*cp++ != '+') {
+X		goto bad_header;
+X	    }
+X	    AtoL(cp, n_start);
+X	    if (*cp++ == ',') {
+X		AtoL(cp, n_end);
+X		cp++;
+X	    } else {
+X		n_end = 1;
+X	    }
+X	    if (*cp != '@') {
+X	    bad_header:
+X		fprintf(stderr, "Invalid unified diff header at line %ld.\n",
+X			line_num);
+X		exit(1);
+X	    }
+X	    o_end = (o_start ? o_start + o_end - 1 : 0);
+X	    n_end = (n_start ? n_start + n_end - 1 : 0);
+X	    o_first = o_start;
+X	    n_first = n_start;
+X	    if (o_start) {
+X		o_line = o_start-1;
+X	    } else {
+X		o_line = o_last = 0;
+X	    }
+X	    if (n_start) {
+X		n_line = n_start-1;
+X	    } else {
+X		n_line = n_last = 0;
+X	    }
+X	    state = UNI_LINES;
+X	    break;
+X	}
+X	case UNI_LINES:
+X	    switch (*buf) {
+X	    case ' ':
+X	    case '=':
+X		*buf = ' ';
+X		o_last = ++o_line;
+X		n_last = ++n_line;
+X		break;
+X	    case '-':
+X		o_last = ++o_line;
+X		break;
+X	    case '+':
+X		n_last = ++n_line;
+X		break;
+X	    default:
+X		fprintf(stderr, "Malformed unified diff at line %ld.\n",
+X			line_num);
+X		exit(1);
+X	    }
+X	    add_line(*buf, 0L, buf+1);
+X	    if (o_line == o_end && n_line == n_end) {
+X		generate_output();
+X		state = PARSE_UNIDIFF;
+X	    }
+X	    break;
+X	case PARSE_CDIFF:
+X	    if (strnNE(buf, "********", 8)) {
+X		generate_output();
+X		found_index = 0;
+X		*name = '\0';
+X		state = FIND_NEXT;
+X		goto reprocess;
+X	    }
+X	    state = PARSE_OLD;
+X	    break;
+X	case PARSE_OLD:
+X	    ndiff = ' ';
+X	    o_start = -1;
+X	    if (sscanf(buf, "*** %ld,%ld %c", &o_start, &o_end, &ndiff) < 2) {
+X		if (o_start < 0) {
+X		    fprintf(stderr,
+X			"Context diff missing 'old' header at line %ld.\n",
+X			line_num);
+X		    exit(1);
+X		}
+X		o_end = o_start;
+X		ndiff = ' ';
+X	    } else if (odiff) {
+X		ndiff = ' ';
+X	    }
+X	    if (o_last >= 0) {
+X		if (o_start > o_last) {
+X		    generate_output();
+X		} else {
+X		    ndiff = ' ';
+X		    while (head->link && head->link->num != o_start) {
+X			head = head->link;
+X		    }
+X		}
+X	    }
+X	    o_line = o_start-1;
+X	    n_line = 0;
+X	    if (!o_first) {
+X		o_first = o_start;
+X	    }
+X	    if (!o_start) {
+X		state = PARSE_NEW;
+X	    } else {
+X		state = CHECK_OLD;
+X	    }
+X	    break;
+X	case CHECK_OLD:
+X	    if (strnEQ(buf, "--- ", 4)) {
+X		state = PARSE_NEW;
+X	    } else {
+X		state = OLD_LINES;
+X		hold = head;
+X	    }
+X	    goto reprocess;
+X	case OLD_LINES:
+X	    if (buf[0] == '\n') {
+X		strcpy(buf, "  \n");
+X	    }
+X	    if (buf[1] == '\n') {
+X		strcpy(buf+1, " \n");
+X	    }
+X	    if (buf[1] != ' ') {
+X		fprintf(stderr, "Malformed context diff at line %ld.\n",
+X			line_num);
+X		exit(1);
+X	    }
+X	    switch (*buf) {
+X	    case ' ':
+X		type = ' ';
+X		n_line++;
+X		o_line++;
+X		break;
+X	    case '-':
+X	    case '!':
+X		type = '-';
+X		o_line++;
+X		break;
+X	    default:
+X		fprintf(stderr, "Malformed context diff at line %ld.\n",
+X			line_num);
+X		exit(1);
+X	    }
+X	    if (o_line > o_last) {
+X		add_line(type, 0L, buf+2);
+X		o_last = o_line;
+X		n_last = n_line;
+X	    } else {
+X		do {
+X		    hold = hold->link;
+X		} while (hold->type == '+');
+X		if (type != ' ') {
+X		    hold->type = type;
+X		    hold->num = 0;
+X		}
+X	    }
+X	    if (o_line == o_end) {
+X		state = PARSE_NEW;
+X	    }
+X	    break;
+X	case PARSE_NEW:
+X	    if (*buf == '\n') {
+X		break;
+X	    }
+X	    n_start = -1;
+X	    if (sscanf(buf, "--- %ld,%ld", &n_start, &n_end) != 2) {
+X		if (n_start < 0) {
+X		    fprintf(stderr,
+X			"Context diff missing 'new' header at line %ld.\n",
+X			line_num);
+X		    exit(1);
+X		}
+X		n_end = n_start;
+X	    }
+X	    n_last = n_line;
+X	    o_line = o_start ? o_start-1 : 0;
+X	    n_line = n_start ? n_start-1 : 0;
+X	    n_last += n_line;
+X	    hold = head;
+X	    if (!n_first) {
+X		n_first = n_start;
+X		while (hold->link && hold->link->type == '-') {
+X		    hold = hold->link;
+X		    hold->num = ++o_line;
+X		}
+X	    }
+X	    if (ndiff == '*' && n_last == n_end) {
+X		state = PARSE_CDIFF;
+X		break;
+X	    }
+X	    state = NEW_LINES;
+X	    break;
+X	case NEW_LINES:
+X	    if (buf[0] == '\n') {
+X		strcpy(buf, "  \n");
+X	    }
+X	    if (buf[1] == '\n') {
+X		strcpy(buf+1, " \n");
+X	    }
+X	    if (buf[1] != ' ') {
+X		fprintf(stderr, "Malformed context diff at line %ld.\n",
+X			line_num);
+X		exit(1);
+X	    }
+X	    switch (*buf) {
+X	    case ' ':
+X		type = ' ';
+X		n_line++;
+X		o_line++;
+X		break;
+X	    case '+':
+X	    case '!':
+X		type = '+';
+X		n_line++;
+X		break;
+X	    default:
+X		fprintf(stderr, "Malformed context diff at line %ld.\n",
+X			line_num);
+X		exit(1);
+X	    }
+X	    if (o_line > o_last) {
+X		o_last = o_line;
+X		add_line(type, o_line, buf+2);
+X		n_last++;
+X	    } else if (type != ' ') {
+X		add_line(type, 0L, buf+2);
+X		n_last++;
+X	    } else {
+X		hold = hold->link;
+X		hold->num = o_line;
+X		while (hold->link && !hold->link->num
+X		    && hold->link->type != ' ') {
+X		    hold = hold->link;
+X		    if (hold->type == '-') {
+X			hold->num = ++o_line;
+X		    }
+X		}
+X	    }
+X	    if (o_line == o_end && n_line == n_end) {
+X		state = PARSE_CDIFF;
+X	    }
+X	    break;
+X	}/* switch */
+X    }/* while */
+X    generate_output();
+X
+X    return 0;
+X}
+X
+Xvoid
+Xensure_name()
+X{
+X    char *cp = name;
+X
+X    if (!found_index) {
+X	if (!*name) {
+X	    fprintf(stderr,
+X		"Couldn't find a name for the diff at line %ld.\n",
+X		line_num);
+X	} else if (patch_format) {
+X	    if (cp[0] == '.' && cp[1] == '/') {
+X		cp += 2;
+X	    }
+X	    printf("Index: %s\n", cp);
+X	}
+X    }
+X}
+X
+Xvoid
+Xadd_line(type, num, str)
+Xchar type;
+Xlong num;
+Xchar *str;
+X{
+X    line = (struct liner *)malloc(sizeof (struct liner) + strlen(str));
+X    if (!line) {
+X	fprintf(stderr, "Out of memory!\n");
+X	exit(1);
+X    }
+X    line->type = type;
+X    line->num = num;
+X    strcpy(line->str, str);
+X    line->link = hold->link;
+X    hold->link = line;
+X    hold = line;
+X}
+X
+Xvoid
+Xgenerate_output()
+X{
+X    if (o_last < 0) {
+X	return;
+X    }
+X    if (output_type == 1) {
+X	long i, j;
+X
+X	i = o_first ? o_last - o_first + 1 : 0;
+X	j = n_first ? n_last - n_first + 1 : 0;
+X	printf("@@ -%ld,%ld +%ld,%ld @@\n", o_first, i, n_first, j);
+X	for (line = root.link; line; line = hold) {
+X	    printf("%c%s", use_equals && line->type == ' '? '=' : line->type,
+X		line->str);
+X	    hold = line->link;
+X	    free(line);
+X	}
+X    } else { /* if output == 2 */
+X	struct liner *scan;
+X	int found_plus = 1;
+X	char ch;
+X
+X	printf("***************\n*** %ld", o_first);
+X	if (o_first == o_last) {
+X	    printf(" ****\n");
+X	} else {
+X	    printf(",%ld ****\n", o_last);
+X	}
+X	for (line = root.link; line; line = line->link) {
+X	    if (line->type == '-') {
+X		break;
+X	    }
+X	}
+X	if (line) {
+X	    found_plus = 0;
+X	    ch = ' ';
+X	    for (line = root.link; line; line = line->link) {
+X		switch (line->type) {
+X		case '-':
+X		    if (ch != ' ') {
+X			break;
+X		    }
+X		    scan = line;
+X		    while ((scan = scan->link) != NULL && scan->type == '-') {
+X			;
+X		    }
+X		    if (scan && scan->type == '+') {
+X			do {
+X			    scan->type = '!';
+X			} while ((scan = scan->link) && scan->type == '+');
+X			ch = '!';
+X		    } else {
+X			ch = '-';
+X		    }
+X		    break;
+X		case '+':
+X		case '!':
+X		    found_plus = 1;
+X		    continue;
+X		case ' ':
+X		    ch = ' ';
+X		    break;
+X		}
+X		printf("%c %s", ch, line->str);
+X	    }/* for */
+X	}/* if */
+X	if (n_first == n_last) {
+X	    printf("--- %ld ----\n", n_first);
+X	} else {
+X	    printf("--- %ld,%ld ----\n", n_first, n_last);
+X	}
+X	if (found_plus) {
+X	    for (line = root.link; line; line = line->link) {
+X		if (line->type != '-') {
+X		    printf("%c %s", line->type, line->str);
+X		}
+X	    }
+X	}
+X	for (line = root.link; line; line = hold) {
+X	    hold = line->link;
+X	    free(line);
+X	}
+X    }/* if output == 2 */
+X
+X    root.link = NULL;
+X    head = &root;
+X    hold = &root;
+X
+X    o_first = 0;
+X    n_first = 0;
+X    o_last = -1;
+X    n_last = 0;
+X}
+END-of-unify.c
+echo x - unipatch.c
+sed 's/^X//' >unipatch.c << 'END-of-unipatch.c'
+X/*
+XA filter to turn a unified diff into a degenerate context diff (no '!'s)
+Xfor patch. Version 1.1. Author: davison@borland.com
+X*/
+X#include <stdio.h>
+X#define ERR(a) {fputs(a,stderr);exit(1);}
+X#define NUM(x) {for(x=0;*cp<='9'&&*cp>='0';)x=x*10+*cp++-'0';ch= *cp++;}
+Xstruct Ln {struct Ln *lk; char t; char s[1];} r,*h,*ln;
+Xchar bf[2048],*cp,ch,*malloc();
+Xlong os,ol,ns,nl,ne,lncnt;
+Xmain()
+X{
+X for(;;){
+X  for(;;){
+X   if(!fgets(bf,sizeof bf,stdin)) exit(0);
+X   lncnt++;
+X   if(!strncmp(bf,"@@ -",4)) break;
+X   fputs(bf,stdout);
+X  }
+X  ol=nl=1, cp=bf+4;
+X  NUM(os)
+X  if(ch==',') NUM(ol)
+X  if(*cp++!='+') goto bad;
+X  NUM(ns)
+X  if(ch==',') NUM(nl)
+X  if(*cp!='@') goto bad;
+X  r.lk=0, h= &r, ne=ns+nl-1;
+X  printf("***************\n*** %ld,%ld ****\n",os,os+ol-(os>0));
+X  while(ol||nl){
+X   if(!fgets(bf,sizeof bf,stdin)){
+X    if(nl>2) ERR("Unexpected end of file.\n")
+X    strcpy(bf," \n");
+X   }
+X   lncnt++;
+X   if(*bf=='\t'||*bf=='\n') ch=' ', cp=bf;
+X   else ch= *bf, cp=bf+1;
+X   switch(ch){
+X   case'-':if(!ol--) goto bad;
+X	printf("- %s",cp);
+X	break;
+X   case'=':ch=' ';
+X   case' ':if(!ol--) goto bad;
+X	printf("  %s",cp);
+X   case'+':if(!nl--) goto bad;
+X	ln = (struct Ln*)malloc(sizeof(*ln)+strlen(cp));
+X	if(!ln) ERR("Out of memory!\n")
+X	ln->lk=0, ln->t=ch, strcpy(ln->s,cp);
+X	h->lk=ln, h=ln;
+X	break;
+X   default:
+Xbad:	fprintf(stderr,"Malformed unified diff at line %ld: ",lncnt);
+X	ERR(bf)
+X   }
+X  }
+X  printf("--- %ld,%ld ----\n",ns,ne);
+X  for(ln=r.lk;ln;ln=h){
+X   printf("%c %s",ln->t,ln->s);
+X   h=ln->lk; free(ln);
+X  }
+X }
+X}
+END-of-unipatch.c
+exit
+
+
+exit 0 # Just in case...
+-- 
+Kent Landfield                   INTERNET: kent@sparky.IMD.Sterling.COM
+Sterling Software, IMD           UUCP:     uunet!sparky!kent
+Phone:    (402) 291-8300         FAX:      (402) 291-4362
+Please send comp.sources.misc-related mail to kent@uunet.uu.net.
