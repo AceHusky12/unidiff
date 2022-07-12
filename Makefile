@@ -6,7 +6,7 @@ CFLAGS= -O
 all: unify unipatch
 
 unify: unify.c
-	$(CC) $(CFLAGS) -o unify unify.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -o unify unify.c
 
 unipatch: unipatch.c
-	$(CC) $(CFLAGS) -o unipatch unipatch.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -o unipatch unipatch.c
