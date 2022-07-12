@@ -503,7 +503,11 @@ generate_output()
 
 	i = o_first ? o_last - o_first + 1 : 0;
 	j = n_first ? n_last - n_first + 1 : 0;
-	printf("@@ -%ld,%ld +%ld,%ld @@ %s\n", o_first, i, n_first, j,pstuff);
+	if (strlen(pstuff) == 0)
+		printf("@@ -%ld,%ld +%ld,%ld @@\n", o_first, i, n_first, j);
+	else
+		printf("@@ -%ld,%ld +%ld,%ld @@ %s", o_first, i, n_first, j,
+		    pstuff);
 	for (line = root.link; line; line = hold) {
 	    printf("%c%s", use_equals && line->type == ' '? '=' : line->type,
 		line->str);
